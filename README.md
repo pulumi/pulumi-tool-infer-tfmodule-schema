@@ -14,11 +14,27 @@ pulumi plugin install tool infer-tfmodule-schema
 ### Usage with remote modules
 
 ```
-pulumi run infer-tfmodule-schema -- <module-source> <version> <output-file-name>
+pulumi plugin run infer-tfmodule-schema -- <module-source> <version> <output-file-name>
+```
+
+### Example usage with AWS VPC module
+
+```
+pulumi plugin run infer-tfmodule-schema terraform-aws-modules/vpc/aws 5.18.1 config.json
 ```
 
 ### Usage with local modules
 
 ```
-pulumi run infer-tfmodule-schema -- <module-path> <output-file-name>
+pulumi run infer-tfmodule-schema <local-module-path> <output-file-name>
+```
+
+### Using the generated schema
+
+The generated JSON file can then be used with `pulumi-terraform-module` via the parameter `--config config.json` to enhance the inferred schema of the TF module. 
+
+For example:
+
+```
+pulumi package add terraform-module -- <module-source> <version> <packageName> --config config.json
 ```
