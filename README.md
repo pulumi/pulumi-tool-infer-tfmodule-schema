@@ -17,6 +17,10 @@ pulumi plugin install tool infer-tfmodule-schema
 pulumi plugin run infer-tfmodule-schema -- <module-source> <version> <output-file-name>
 ```
 
+Additional options
+ - `--generate-override`: Generate a schema override file to be used in the `pulumi-terraform-module` repository (see below)
+ - `--skip-strings`: Skip emitting outputs with the `string` type. This is useful if you want to avoid redundant outputs in the generated schema since the default is already `string`.
+
 ### Example usage with AWS VPC module
 
 ```
@@ -48,3 +52,11 @@ pulumi plugin run infer-tfmodule-schema -- <module-source> <version> <output-fil
 After running the command, you can open a PR in the `pulumi-terraform-module` repository with the generated file inside the `./pkg/modprovider/module_schema_overrides` directory. The name of file should indicate which module it is for and the version should be the next major version of the module. For example, if the module is `terraform-aws-modules/vpc/aws` and the version is `5.18.1`, the file _can_ be named `terraform-aws-modules_vpc_aws_6_0_0.json`. The structure of the file name isn't required
 
 Since the default inferred output type of the pulumi-terraform-module is `string`, you can skip emitting outputs with the `string` type using the `--skip-strings` option because the override would be redundant.
+
+### Publishing a new version of the plugin
+
+Bump the version field in the project file at `./src/InferModuleSchema.csproj` and push that change. When the commit lands to `master` branch, GitHub actions will check that the new version isn't published yet and publish it automatically to the releases, making it immediately available for the users.
+
+If you want to retract a version, simply remove it from the releases and push to `master` again, GitHub actions will see that the version isn't publish and will publish accordingly. 
+
+See the `./build/Build.fs` file to see how where this happens.
