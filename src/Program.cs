@@ -177,7 +177,44 @@ ChatCompletionOptions options = new()
         jsonSchemaIsStrict: true)
 };
 
-ChatCompletion completion = chat.CompleteChat(messages, options);
+ChatCompletion completion;
+
+try 
+{
+    completion = chat.CompleteChat(messages, options);
+}
+catch (System.ClientModel.ClientResultException ex)
+{
+    if (ex.Message.Contains("context_length_exceeded"))
+    {
+        // we sent too much data to the language model
+        // try again but only send output.tf file contents
+        WriteLine("OpenAI error: context length exceeded...");
+        WriteLine("Minizing the sent source code to only output.tf files");
+        messages = [
+            new SystemChatMessage(systemMessage),
+            new UserChatMessage(userMessage)
+        ];
+        foreach (var path in terraformFiles)
+        {
+            if (!path.EndsWith("outputs.tf"))
+            {
+                continue;
+            }
+
+            string content = File.ReadAllText(path);
+            messages.Add(new UserChatMessage($"File: {path}\n{content}"));
+        }
+
+        completion = chat.CompleteChat(messages, options);
+    }
+    else 
+    {
+        WriteLine($"Error: {ex.Message}");  
+        WriteEmptyConfig();
+        return;
+    }
+}
 
 if (completion.Content.Count == 0)
 {
