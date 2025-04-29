@@ -8,21 +8,28 @@ using System.Text.Json.Nodes;
 
 var openAIKey = Environment.GetEnvironmentVariable("OPENAI_KEY");
 
+var arguments = new List<string>(args);
+// collect options
+var generateSchemaOverride = arguments.Contains("--generate-override");
+var skipStrings = arguments.Contains("--skip-strings");
+arguments.Remove("--generate-override");
+arguments.Remove("--skip-strings");
+
 if (string.IsNullOrEmpty(openAIKey))
 {
     WriteLine("Please set the OPENAI_KEY environment variable.");
     return;
 }
 
-if (args.Length != 3 && args.Length != 2)
+if (arguments.Count != 3 && arguments.Count != 2)
 {
     WriteLine("Usage: infer-tfmodule-schema <module_source> [<module_version>] <output_file_name>");
     return;
 }
 
-var moduleSource = args[0];
-var moduleVersion = args.Length == 3 ? args[1] : "";
-var outputFileName = args[args.Length - 1];
+var moduleSource = arguments[0];
+var moduleVersion = arguments.Count == 3 ? arguments[1] : "";
+var outputFileName = arguments[arguments.Count - 1];
 var cwd = Directory.GetCurrentDirectory();
 var outputFilePath = Path.Combine(cwd, outputFileName);
 
@@ -33,7 +40,7 @@ void WriteEmptyConfig() => File.WriteAllText(outputFilePath, "{ \"outputs\": {} 
 // If the module is remote, it will clone the module from GitHub and return the paths of the files in the cloned directory
 async Task<List<string>> TerraformFiles()
 {
-    if (args.Length == 2)
+    if (arguments.Count == 2)
     {
         var localModulePath = Path.Combine(cwd, moduleSource);
         if (!Directory.Exists(localModulePath))
@@ -189,6 +196,14 @@ foreach (JsonElement stepElement in inferredOutputs)
     var outputName = stepElement.GetProperty("output_name").GetString() ?? "";
     var outputType = stepElement.GetProperty("output_type").GetString() ?? "";
     var pulumiAnyType = new JsonObject { ["$ref"] = "pulumi.json#/Any" };
+
+    if (skipStrings && outputType == "string")
+    {
+        // Skip string types if --skip-strings is passed
+        // because the default is a string so don't need to specify it
+        continue;
+    }
+
     outputs[outputName] = outputType switch 
     {
         "string" => new JsonObject { ["type"] = "string" },
@@ -208,7 +223,24 @@ var outputSchema = new JsonObject
 };
 
 WriteLine($"Writing output to {outputFilePath}");
-File.WriteAllText(outputFilePath, outputSchema.ToJsonString(new JsonSerializerOptions
+
+if (generateSchemaOverride)
 {
-    WriteIndented = true
-}));
+    var partialSchema = new JsonObject
+    {
+        ["source"] = moduleSource,
+        ["maximumVersion"] = moduleVersion,
+        ["partialSchema"] = outputSchema
+    };
+    File.WriteAllText(outputFilePath, partialSchema.ToJsonString(new JsonSerializerOptions
+    {
+        WriteIndented = true
+    }));
+}
+else
+{
+    File.WriteAllText(outputFilePath, outputSchema.ToJsonString(new JsonSerializerOptions
+    {
+        WriteIndented = true
+    }));
+}

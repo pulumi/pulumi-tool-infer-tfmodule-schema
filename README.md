@@ -38,3 +38,13 @@ For example:
 ```
 pulumi package add terraform-module -- <module-source> <version> <packageName> --config config.json
 ```
+
+### Generating schema override to be used in the pulumi-terraform-module repository
+
+Use the `--generate-override` option to generate a schema override file that can be used in the `pulumi-terraform-module` repository. The difference is that the generated file cannot be used directly as config but can be included in the `pulumi-terraform-module` repository to override the schema of the known module. 
+```
+pulumi plugin run infer-tfmodule-schema -- <module-source> <version> <output-file> --generate-override
+```
+After running the command, you can open a PR in the `pulumi-terraform-module` repository with the generated file inside the `./pkg/modprovider/module_schema_overrides` directory. The name of file should indicate which module it is for and the version should be the next major version of the module. For example, if the module is `terraform-aws-modules/vpc/aws` and the version is `5.18.1`, the file _can_ be named `terraform-aws-modules_vpc_aws_6_0_0.json`. The structure of the file name isn't required
+
+Since the default inferred output type of the pulumi-terraform-module is `string`, you can skip emitting outputs with the `string` type using the `--skip-strings` option because the override would be redundant.
