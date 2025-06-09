@@ -30,7 +30,7 @@ pulumi plugin run infer-tfmodule-schema terraform-aws-modules/vpc/aws 5.18.1 con
 ### Usage with local modules
 
 ```
-pulumi run infer-tfmodule-schema <local-module-path> <output-file-name>
+pulumi plugin run infer-tfmodule-schema <local-module-path> <output-file-name>
 ```
 
 ### Using the generated schema
